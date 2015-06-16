@@ -1,5 +1,5 @@
-This is fastjar.info, produced by makeinfo version 4.7 from
-/home/mitchell/gcc-3.4.2/gcc-3.4.2/fastjar/fastjar.texi.
+This is fastjar.info, produced by makeinfo version 4.8 from
+/home/gdr/build/gcc-3.4.6/gcc-3.4.6/fastjar/fastjar.texi.
 
 INFO-DIR-SECTION Programming
 START-INFO-DIR-ENTRY
@@ -503,9 +503,9 @@ GNU Library General Public License instead of this License.
 
 
 Tag Table:
-Node: Top865
-Node: Invoking jar1167
-Node: Invoking grepjar2951
-Node: Copying3558
+Node: Top866
+Node: Invoking jar1168
+Node: Invoking grepjar2952
+Node: Copying3559
 
 End Tag Table

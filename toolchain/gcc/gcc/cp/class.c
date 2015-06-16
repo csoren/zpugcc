@@ -1,6 +1,7 @@
 /* Functions related to building classes and their related objects.
    Copyright (C) 1987, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004  Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005
+     Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
@@ -878,9 +879,10 @@ add_method (tree type, tree method, int error_p)
 	   fns = OVL_NEXT (fns))
 	{
 	  tree fn = OVL_CURRENT (fns);
+	  tree fn_type;
+	  tree method_type;
 	  tree parms1;
 	  tree parms2;
-	  bool same = 1;
 
 	  if (TREE_CODE (fn) != TREE_CODE (method))
 	    continue;
@@ -895,8 +897,10 @@ add_method (tree type, tree method, int error_p)
 	     functions in the derived class override and/or hide member
 	     functions with the same name and parameter types in a base
 	     class (rather than conflicting).  */
-	  parms1 = TYPE_ARG_TYPES (TREE_TYPE (fn));
-	  parms2 = TYPE_ARG_TYPES (TREE_TYPE (method));
+	  fn_type = TREE_TYPE (fn);
+	  method_type = TREE_TYPE (method);
+	  parms1 = TYPE_ARG_TYPES (fn_type);
+	  parms2 = TYPE_ARG_TYPES (method_type);
 
 	  /* Compare the quals on the 'this' parm.  Don't compare
 	     the whole types, as used functions are treated as
@@ -905,23 +909,25 @@ add_method (tree type, tree method, int error_p)
 	      && ! DECL_STATIC_FUNCTION_P (method)
 	      && (TYPE_QUALS (TREE_TYPE (TREE_VALUE (parms1)))
 		  != TYPE_QUALS (TREE_TYPE (TREE_VALUE (parms2)))))
-	    same = 0;
+	    continue;
 	  
 	  /* For templates, the template parms must be identical.  */
 	  if (TREE_CODE (fn) == TEMPLATE_DECL
-	      && !comp_template_parms (DECL_TEMPLATE_PARMS (fn),
-				       DECL_TEMPLATE_PARMS (method)))
-	    same = 0;
+	      && (!same_type_p (TREE_TYPE (fn_type),
+				TREE_TYPE (method_type))
+		  || !comp_template_parms (DECL_TEMPLATE_PARMS (fn),
+					   DECL_TEMPLATE_PARMS (method))))
+	    continue;
 	  
 	  if (! DECL_STATIC_FUNCTION_P (fn))
 	    parms1 = TREE_CHAIN (parms1);
 	  if (! DECL_STATIC_FUNCTION_P (method))
 	    parms2 = TREE_CHAIN (parms2);
 
-	  if (same && compparms (parms1, parms2) 
+	  if (compparms (parms1, parms2) 
 	      && (!DECL_CONV_FN_P (fn) 
-		  || same_type_p (TREE_TYPE (TREE_TYPE (fn)),
-				  TREE_TYPE (TREE_TYPE (method)))))
+		  || same_type_p (TREE_TYPE (fn_type),
+				  TREE_TYPE (method_type))))
 	    {
 	      if (using && DECL_CONTEXT (fn) == type)
 		/* Defer to the local function.  */
@@ -2034,11 +2040,7 @@ find_final_overrider (tree derived, tree binfo, tree fn)
 
   /* If there was no winner, issue an error message.  */
   if (!ffod.candidates || TREE_CHAIN (ffod.candidates))
-    {
-      error ("no unique final overrider for `%D' in `%T'", fn, 
-	     BINFO_TYPE (derived));
-      return error_mark_node;
-    }
+    return error_mark_node;
 
   return ffod.candidates;
 }
@@ -2098,7 +2100,10 @@ update_vtable_entry_for_fn (tree t, tree binfo, tree fn, tree* virtuals,
   /* Find the final overrider.  */
   overrider = find_final_overrider (TYPE_BINFO (t), b, target_fn);
   if (overrider == error_mark_node)
-    return;
+    {
+      error ("no unique final overrider for `%D' in `%T'", target_fn, t);
+      return;
+    }
   overrider_target = overrider_fn = TREE_PURPOSE (overrider);
   
   /* Check for adjusting covariant return types.  */
@@ -2115,6 +2120,9 @@ update_vtable_entry_for_fn (tree t, tree binfo, tree fn, tree* virtuals,
          also be converting to the return type of FN, we have to
          combine the two conversions here.  */
       tree fixed_offset, virtual_offset;
+
+      over_return = TREE_TYPE (over_return);
+      base_return = TREE_TYPE (base_return);
       
       if (DECL_THUNK_P (fn))
 	{
@@ -2132,32 +2140,51 @@ update_vtable_entry_for_fn (tree t, tree binfo, tree fn, tree* virtuals,
 	virtual_offset =
 	  TREE_VALUE (purpose_member
 		      (BINFO_TYPE (virtual_offset),
-		       CLASSTYPE_VBASECLASSES (TREE_TYPE (over_return))));
-      else if (!same_type_p (TREE_TYPE (over_return),
-			     TREE_TYPE (base_return)))
+		       CLASSTYPE_VBASECLASSES (over_return)));
+      else if (!same_type_ignoring_top_level_qualifiers_p
+	       (over_return, base_return))
 	{
-	  /* There was no existing virtual thunk (which takes
-	     precedence).  */
-	  tree thunk_binfo;
-	  base_kind kind;
-	  
-	  thunk_binfo = lookup_base (TREE_TYPE (over_return),
-				     TREE_TYPE (base_return),
-				     ba_check | ba_quiet, &kind);
+  	  /* There was no existing virtual thunk (which takes
+	     precedence).  So find the binfo of the base function's
+	     return type within the overriding function's return type.
+	     We cannot call lookup base here, because we're inside a
+	     dfs_walk, and will therefore clobber the BINFO_MARKED
+	     flags.  Fortunately we know the covariancy is valid (it
+	     has already been checked), so we can just iterate along
+	     the binfos, which have been chained in inheritance graph
+	     order.  Of course it is lame that we have to repeat the
+	     search here anyway -- we should really be caching pieces
+	     of the vtable and avoiding this repeated work.  */
+	  tree thunk_binfo, base_binfo;
 
-	  if (thunk_binfo && (kind == bk_via_virtual
-			      || !BINFO_OFFSET_ZEROP (thunk_binfo)))
+	  /* Find the base binfo within the overriding function's
+	     return type.  We will always find a thunk_binfo, except
+	     when the covariancy is invalid (which we will have
+	     already diagnosed).  */
+	  for (base_binfo = TYPE_BINFO (base_return),
+	       thunk_binfo = TYPE_BINFO (over_return);
+	       thunk_binfo;
+	       thunk_binfo = TREE_CHAIN (thunk_binfo))
+	    if (same_type_p (BINFO_TYPE (thunk_binfo),
+			     BINFO_TYPE (base_binfo)))
+	      break;
+	  
+	  /* See if virtual inheritance is involved.  */
+	  for (virtual_offset = thunk_binfo;
+	       virtual_offset;
+	       virtual_offset = BINFO_INHERITANCE_CHAIN (virtual_offset))
+	    if (TREE_VIA_VIRTUAL (virtual_offset))
+	      break;
+	  
+	  if (virtual_offset
+	      || (thunk_binfo && !BINFO_OFFSET_ZEROP (thunk_binfo)))
 	    {
 	      tree offset = convert (ssizetype, BINFO_OFFSET (thunk_binfo));
 
-	      if (kind == bk_via_virtual)
+	      if (virtual_offset)
 		{
-		  /* We convert via virtual base. Find the virtual
-		     base and adjust the fixed offset to be from there.  */
-		  while (!TREE_VIA_VIRTUAL (thunk_binfo))
-		    thunk_binfo = BINFO_INHERITANCE_CHAIN (thunk_binfo);
-
-		  virtual_offset = thunk_binfo;
+		  /* We convert via virtual base.  Adjust the fixed
+		     offset to be from there.  */
 		  offset = size_diffop
 		    (offset, convert
 		     (ssizetype, BINFO_OFFSET (virtual_offset)));
@@ -5217,6 +5244,7 @@ finish_struct (tree t, tree attributes)
     {
       finish_struct_methods (t);
       TYPE_SIZE (t) = bitsize_zero_node;
+      TYPE_SIZE_UNIT (t) = size_zero_node;
     }
   else
     finish_struct_1 (t);

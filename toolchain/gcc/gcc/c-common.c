@@ -1137,7 +1137,7 @@ fname_decl (unsigned int rid, tree id)
       input_line = saved_lineno;
     }
   if (!ix && !current_function_decl)
-    pedwarn ("%J'%D' is not defined outside of function scope", decl, decl);
+    pedwarn ("'%D' is not defined outside of function scope", decl);
 
   return decl;
 }
@@ -1271,6 +1271,18 @@ constant_fits_type_p (tree c, tree type)
 
   c = convert (type, c);
   return !TREE_OVERFLOW (c);
+}
+
+/* Nonzero if vector types T1 and T2 can be converted to each other
+   without an explicit cast.  */
+int
+vector_types_convertible_p (tree t1, tree t2)
+{
+  return targetm.vector_opaque_p (t1)
+	 || targetm.vector_opaque_p (t2)
+         || (tree_int_cst_equal (TYPE_SIZE (t1), TYPE_SIZE (t2))
+	     && INTEGRAL_TYPE_P (TREE_TYPE (t1))
+		== INTEGRAL_TYPE_P (TREE_TYPE (t2)));
 }
 
 /* Convert EXPR to TYPE, warning about conversion problems with constants.
@@ -4642,7 +4654,10 @@ handle_mode_attribute (tree *node, tree name, tree args ATTRIBUTE_UNUSED,
       else
 	for (j = 0; j < NUM_MACHINE_MODES; j++)
 	  if (!strcmp (p, GET_MODE_NAME (j)))
-	    mode = (enum machine_mode) j;
+	    {
+	      mode = (enum machine_mode) j;
+	      break;
+	    }
 
       if (mode == VOIDmode)
 	error ("unknown machine mode `%s'", p);
@@ -4675,8 +4690,44 @@ handle_mode_attribute (tree *node, tree name, tree args ATTRIBUTE_UNUSED,
 							mode);
 	      *node = ptr_type;
 	    }
+	  else if (TREE_CODE (type) == ENUMERAL_TYPE)
+	    {
+	      /* For enumeral types, copy the precision from the integer
+		 type returned above.  If not an INTEGER_TYPE, we can't use
+		 this mode for this type.  */
+	      if (TREE_CODE (typefm) != INTEGER_TYPE)
+		{
+		  error ("cannot use mode %qs for enumeral types", p);
+		  return NULL_TREE;
+		}
+
+	      if (!(flags & (int) ATTR_FLAG_TYPE_IN_PLACE))
+		type = build_type_copy (type);
+
+	      /* We cannot use layout_type here, because that will attempt
+		 to re-layout all variants, corrupting our original.  */
+	      TYPE_PRECISION (type) = TYPE_PRECISION (typefm);
+	      TYPE_MIN_VALUE (type) = TYPE_MIN_VALUE (typefm);
+	      TYPE_MAX_VALUE (type) = TYPE_MAX_VALUE (typefm);
+	      TYPE_SIZE (type) = TYPE_SIZE (typefm);
+	      TYPE_SIZE_UNIT (type) = TYPE_SIZE_UNIT (typefm);
+	      TYPE_MODE (type) = TYPE_MODE (typefm);
+	      if (!TYPE_USER_ALIGN (type))
+		TYPE_ALIGN (type) = TYPE_ALIGN (typefm);
+
+	      *node = type;
+	    }
+	  else if (VECTOR_MODE_P (mode)
+		   ? TREE_CODE (type) != TREE_CODE (TREE_TYPE (typefm))
+		   : TREE_CODE (type) != TREE_CODE (typefm))
+		   
+	    {
+	      error ("mode `%s' applied to inappropriate type", p);
+	      return NULL_TREE;
+	    }
 	  else
-	  *node = typefm;
+	    *node = typefm;
+
 	  /* No need to layout the type here.  The caller should do this.  */
 	}
     }

@@ -98,7 +98,6 @@ static struct search_level *pop_search_level (struct stack_level *);
 static tree bfs_walk (tree, tree (*) (tree, void *),
 		      tree (*) (tree, int, void *), void *);
 static tree lookup_field_queue_p (tree, int, void *);
-static int shared_member_p (tree);
 static tree lookup_field_r (tree, void *);
 static tree dfs_accessible_queue_p (tree, int, void *);
 static tree dfs_accessible_p (tree, void *);
@@ -947,8 +946,12 @@ accessible_p (tree type, tree decl)
   /* In a template declaration, we cannot be sure whether the
      particular specialization that is instantiated will be a friend
      or not.  Therefore, all access checks are deferred until
-     instantiation.  */
-  if (processing_template_decl)
+     instantiation.  However, PROCESSING_TEMPLATE_DECL is set in the
+     parameter list for a template (because we may see dependent types
+     in default arguments for template parameters), and access
+     checking should be performed in the outermost parameter list.  */ 
+  if (processing_template_decl 
+      && (!processing_template_parmlist || processing_template_decl > 1))
     return 1;
 
   if (!TYPE_P (type))
@@ -1085,7 +1088,7 @@ template_self_reference_p (tree type, tree decl)
 
    This function checks that T contains no nonstatic members.  */
 
-static int
+int
 shared_member_p (tree t)
 {
   if (TREE_CODE (t) == VAR_DECL || TREE_CODE (t) == TYPE_DECL \

@@ -1,5 +1,5 @@
-This is doc/gcj.info, produced by makeinfo version 4.7 from
-/home/mitchell/gcc-3.4.2/gcc-3.4.2/gcc/java/gcj.texi.
+This is doc/gcj.info, produced by makeinfo version 4.8 from
+/home/gdr/build/gcc-3.4.6/gcc-3.4.6/gcc/java/gcj.texi.
 
    Copyright (C) 2001, 2002 Free Software Foundation, Inc.
 
@@ -19,7 +19,7 @@ texts being (a) (see below), and with the Back-Cover Texts being (b)
 
    You have freedom to copy and modify this GNU Manual, like GNU
 software.  Copies published by the Free Software Foundation raise
-funds for GNU development.  man end
+funds for GNU development.
 
 INFO-DIR-SECTION Programming
 START-INFO-DIR-ENTRY
@@ -61,7 +61,7 @@ texts being (a) (see below), and with the Back-Cover Texts being (b)
 
    You have freedom to copy and modify this GNU Manual, like GNU
 software.  Copies published by the Free Software Foundation raise
-funds for GNU development.  man end
+funds for GNU development.
 
 
 File: gcj.info,  Node: Top,  Next: Copying,  Up: (dir)
@@ -2815,47 +2815,47 @@ for more information.
 
 
 Tag Table:
-Node: Top2581
-Node: Copying3737
-Node: GNU Free Documentation License22905
-Node: Invoking gcj45307
-Node: Input and output files45959
-Node: Input Options47485
-Node: Encodings50633
-Node: Warnings51839
-Node: Code Generation52960
-Ref: Code Generation-Footnote-156625
-Node: Configure-time Options56934
-Node: Compatibility58357
-Node: Limitations58837
-Node: Extensions60419
-Node: Invoking gcjh63017
-Node: Invoking jv-scan65073
-Node: Invoking jcf-dump66114
-Node: Invoking gij66887
-Node: Invoking jv-convert69322
-Node: Invoking rmic70393
-Node: Invoking rmiregistry71769
-Node: About CNI72174
-Node: Basic concepts73470
-Node: Packages76473
-Node: Primitive types78801
-Node: Interfaces80469
-Node: Objects and Classes81380
-Node: Class Initialization83580
-Node: Object allocation85923
-Node: Arrays86906
-Node: Methods89510
-Node: Strings92319
-Node: Mixing with C++93803
-Node: Exception Handling95665
-Node: Synchronization97299
-Node: Invocation99289
-Node: Reflection103377
-Node: System properties103838
-Node: Standard Properties104715
-Node: GNU Classpath Properties109180
-Node: libgcj Runtime Properties110226
-Node: Resources112705
+Node: Top2564
+Node: Copying3720
+Node: GNU Free Documentation License22888
+Node: Invoking gcj45290
+Node: Input and output files45942
+Node: Input Options47468
+Node: Encodings50616
+Node: Warnings51822
+Node: Code Generation52943
+Ref: Code Generation-Footnote-156608
+Node: Configure-time Options56917
+Node: Compatibility58340
+Node: Limitations58820
+Node: Extensions60402
+Node: Invoking gcjh63000
+Node: Invoking jv-scan65056
+Node: Invoking jcf-dump66097
+Node: Invoking gij66870
+Node: Invoking jv-convert69305
+Node: Invoking rmic70376
+Node: Invoking rmiregistry71752
+Node: About CNI72157
+Node: Basic concepts73453
+Node: Packages76456
+Node: Primitive types78784
+Node: Interfaces80452
+Node: Objects and Classes81363
+Node: Class Initialization83563
+Node: Object allocation85906
+Node: Arrays86889
+Node: Methods89493
+Node: Strings92302
+Node: Mixing with C++93786
+Node: Exception Handling95648
+Node: Synchronization97282
+Node: Invocation99272
+Node: Reflection103360
+Node: System properties103821
+Node: Standard Properties104698
+Node: GNU Classpath Properties109163
+Node: libgcj Runtime Properties110209
+Node: Resources112688
 
 End Tag Table

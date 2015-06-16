@@ -1836,8 +1836,13 @@ namespace std
 						__tm, __wcs);
 		  break;
 		case 'S':
-		  // Seconds.
-		  __beg = _M_extract_num(__beg, __end, __tm->tm_sec, 0, 59, 2,
+		  // Seconds. [tm_sec]
+		  // [00, 60] in C99 (one leap-second), [00, 61] in C89.
+#ifdef _GLIBCXX_USE_C99
+		  __beg = _M_extract_num(__beg, __end, __tm->tm_sec, 0, 60, 2,
+#else
+		  __beg = _M_extract_num(__beg, __end, __tm->tm_sec, 0, 61, 2,
+#endif
 					 __io, __err);
 		  break;
 		case 't':
@@ -1997,8 +2002,7 @@ namespace std
 	  for (size_t __i2 = 1; __i2 < __nmatches; ++__i2)
 	    __minlen = std::min(__minlen,
 			      __traits_type::length(__names[__matches[__i2]]));
-	  ++__pos;
-	  ++__beg;
+	  ++__beg, ++__pos;
 	  if (__pos < __minlen && __beg != __end)
 	    for (size_t __i3 = 0; __i3 < __nmatches;)
 	      {
@@ -2015,8 +2019,7 @@ namespace std
       if (__nmatches == 1)
 	{
 	  // Make sure found name is completely extracted.
-	  ++__pos;
-	  ++__beg;
+	  ++__beg, ++__pos;
 	  __name = __names[__matches[0]];
 	  const size_t __len = __traits_type::length(__name);
 	  while (__pos < __len && __beg != __end && __name[__pos] == *__beg)
@@ -2089,7 +2092,7 @@ namespace std
       // __days array with the same index points to a day, and that
       // day's abbreviated form.
       // NB: Also assumes that an abbreviated name is a subset of the name.
-      if (!__err)
+      if (!__err && __beg != __end)
 	{
 	  size_t __pos = __traits_type::length(__days[__tmpwday]);
 	  __tp._M_days(__days);
@@ -2104,9 +2107,10 @@ namespace std
 	      if (__len != __pos)
 		__err |= ios_base::failbit;
 	    }
-	  if (!__err)
-	    __tm->tm_wday = __tmpwday;
 	}
+      if (!__err)
+	__tm->tm_wday = __tmpwday;
+      
       if (__beg == __end)
 	__err |= ios_base::eofbit;
       return __beg;
@@ -2134,7 +2138,7 @@ namespace std
       // __months array with the same index points to a month, and that
       // month's abbreviated form.
       // NB: Also assumes that an abbreviated name is a subset of the name.
-      if (!__err)
+      if (!__err && __beg != __end)
 	{
 	  size_t __pos = __traits_type::length(__months[__tmpmon]);
 	  __tp._M_months(__months);
@@ -2149,9 +2153,9 @@ namespace std
 	      if (__len != __pos)
 		__err |= ios_base::failbit;
 	    }
-	  if (!__err)
-	    __tm->tm_mon = __tmpmon;
 	}
+      if (!__err)
+	__tm->tm_mon = __tmpmon;
 
       if (__beg == __end)
 	__err |= ios_base::eofbit;
